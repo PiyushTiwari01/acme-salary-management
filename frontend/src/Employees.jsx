@@ -17,12 +17,12 @@ const emptyForm = {
 
 function Employees() {
   const [employees, setEmployees] = useState([]);
-const [countries, setCountries] = useState([]);
-const [departments, setDepartments] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [departments, setDepartments] = useState([]);
 
-const [search, setSearch] = useState("");
-const [country, setCountry] = useState("");
-const [department, setDepartment] = useState("");
+  const [search, setSearch] = useState("");
+  const [country, setCountry] = useState("");
+  const [department, setDepartment] = useState("");
 
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -61,13 +61,14 @@ const [department, setDepartment] = useState("");
   const loadEmployees = async () => {
   try {
     setLoading(true);
+    setError("");
 
     const response = await axios.get(
       `${API_URL}/api/employees`,
       {
         params: {
           page,
-          page_size: pageSize,
+          page_size: 50,
           search: search || undefined,
           country: country || undefined,
           department: department || undefined,
@@ -77,10 +78,12 @@ const [department, setDepartment] = useState("");
 
     setEmployees(response.data.data || []);
     setTotal(response.data.count || 0);
-    setTotalPages(response.data.total_pages || 1);
 
-  } catch (err) {
-    console.error("Failed to load employees:", err);
+  } catch (error) {
+    console.error("Failed to load employees:", error);
+    setError(
+      "Unable to load employee data. Please make sure the backend server is running."
+    );
   } finally {
     setLoading(false);
   }
