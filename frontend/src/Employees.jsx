@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = "https://acme-salary-management-93ug.onrender.com";
 
 const emptyForm = {
   employee_code: "",
@@ -59,31 +59,35 @@ function Employees() {
   };
 
   const loadEmployees = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
+    setError("");
 
-      const response = await axios.get(
-        `${API_URL}/employees`,
-        {
-          params: {
-            page,
-            page_size: pageSize,
-            search: search || undefined,
-            country: country || undefined,
-            department: department || undefined,
-          },
-        }
-      );
+    const response = await axios.get(
+      `${API_URL}/api/employees`,
+      {
+        params: {
+          page,
+          page_size: 50,
+          search: search || undefined,
+          country: country || undefined,
+          department: department || undefined,
+        },
+      }
+    );
 
-      setEmployees(response.data.items || []);
-      setTotal(response.data.total || 0);
-      setTotalPages(response.data.total_pages || 1);
-    } catch (error) {
-      console.error("Failed to load employees:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setEmployees(response.data.data || []);
+    setTotal(response.data.count || 0);
+
+  } catch (error) {
+    console.error("Failed to load employees:", error);
+    setError(
+      "Unable to load employee data. Please make sure the backend server is running."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSearch = (value) => {
     setSearch(value);
