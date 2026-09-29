@@ -82,27 +82,35 @@ function App() {
         params.department = departmentFilter;
       }
 
-      const response = await axios.get(`${API_URL}/employees`, {
-  params: {
-    page,
-    page_size: 20,
-    search: search || undefined,
-    country: country || undefined,
-    department: department || undefined,
-  },
-});
-      setEmployees(response.data.items || []);
-      setTotalEmployees(response.data.total || 0);
-      setTotalPages(response.data.total_pages || 1);
-    } catch (err) {
-      console.error("Failed to load employees:", err);
-      setError(
-        "Unable to load employee data. Please make sure the backend server is running."
-      );
-    } finally {
-      setLoading(false);
+     try {
+  setLoading(true);
+  setError("");
+
+  const response = await axios.get(
+    `${API_URL}/api/employees`,
+    {
+      params: {
+        page,
+        page_size: 20,
+        search: search || undefined,
+        country: country || undefined,
+        department: department || undefined,
+      },
     }
-  }
+  );
+
+  setEmployees(response.data.data || []);
+  setTotalEmployees(response.data.count || 0);
+  setTotalPages(response.data.total_pages || 1);
+
+} catch (err) {
+  console.error("Failed to load employees:", err);
+  setError(
+    "Unable to load employee data. Please make sure the backend server is running."
+  );
+} finally {
+  setLoading(false);
+}
 
   async function handleSearch(event) {
     event.preventDefault();
@@ -175,13 +183,13 @@ function App() {
 
       if (editingEmployee) {
         await axios.put(
-          `${API_URL}/employees/${editingEmployee.id}`,
+          `${API_URL}/api/employees/${editingEmployee.id}`,
           payload
         );
 
         setSuccess("Employee updated successfully.");
       } else {
-        await axios.post(`${API_URL}/employees`, payload);
+        await axios.post(`${API_URL}/api/employees`, payload);
 
         setSuccess("Employee created successfully.");
       }
@@ -216,7 +224,7 @@ function App() {
       setError("");
       setSuccess("");
 
-      await axios.delete(`${API_URL}/employees/${employee.id}`);
+      await axios.delete(`${API_URL}/api/employees/${employee.id}`);
 
       setSuccess("Employee deleted successfully.");
 

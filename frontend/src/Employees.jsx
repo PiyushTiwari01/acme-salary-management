@@ -48,7 +48,7 @@ function Employees() {
   const loadFilters = async () => {
     try {
       const response = await axios.get(
-        `${API_URL}/employees/filters/options`
+        `${API_URL}/api/employees/filters/options`
       );
 
       setCountries(response.data.countries || []);
@@ -209,7 +209,7 @@ function Employees() {
         };
 
         await axios.put(
-          `${API_URL}/employees/${editingEmployee.id}`,
+          `${API_URL}/api/employees/${editingEmployee.id}`,
           updatePayload
         );
 
@@ -221,7 +221,7 @@ function Employees() {
         };
 
         await axios.post(
-          `${API_URL}/employees`,
+          `${API_URL}/api/employees`,
           createPayload
         );
 
@@ -253,7 +253,7 @@ function Employees() {
 
     try {
       await axios.delete(
-        `${API_URL}/employees/${employee.id}`
+        `${API_URL}/api/employees/${employee.id}`
       );
 
       alert("Employee deleted successfully.");
