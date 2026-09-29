@@ -17,7 +17,7 @@ const emptyForm = {
 
 function Employees() {
   const [employees, setEmployees] = useState([]);
-  const [Country, setCountries] = useState([]);
+  const [Country, setCountry] = useState([]);
   const [departments, setDepartments] = useState([]);
 
   const [search, setSearch] = useState("");
