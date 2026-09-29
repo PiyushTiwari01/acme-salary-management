@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = "https://acme-salary-management-93ug.onrender.com";
 
 const emptyForm = {
   employee_code: "",
@@ -83,9 +83,14 @@ function App() {
       }
 
       const response = await axios.get(`${API_URL}/employees`, {
-        params,
-      });
-
+  params: {
+    page,
+    page_size: 20,
+    search: search || undefined,
+    country: country || undefined,
+    department: department || undefined,
+  },
+});
       setEmployees(response.data.items || []);
       setTotalEmployees(response.data.total || 0);
       setTotalPages(response.data.total_pages || 1);
