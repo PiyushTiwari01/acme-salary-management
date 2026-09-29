@@ -52,6 +52,7 @@ function App() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+
   const [form, setForm] = useState(emptyForm);
 
   const [error, setError] = useState("");
@@ -61,7 +62,7 @@ function App() {
   // LOAD EMPLOYEES
   // =========================================================
 
-  const loadEmployees = async () => {
+  async function loadEmployees() {
     try {
       setLoading(true);
       setError("");
@@ -79,55 +80,82 @@ function App() {
         }
       );
 
-      const responseData = response.data || {};
+      const data = response.data || {};
 
-      // Supports both:
+      // Backend may return either:
       // { data: [], count: 100 }
-      // and:
+      // or:
       // { items: [], total: 100 }
-      const employeeData =
-        responseData.data ||
-        responseData.items ||
+
+      const employeeList =
+        data.data ||
+        data.items ||
         [];
 
-      const employeeCount =
-        responseData.count ??
-        responseData.total ??
+      const employeeTotal =
+        data.count ??
+        data.total ??
         0;
 
-      const calculatedPages =
-        responseData.total_pages ??
+      const pages =
+        data.total_pages ??
         Math.max(
           1,
-          Math.ceil(employeeCount / pageSize)
+          Math.ceil(
+            employeeTotal / pageSize
+          )
         );
 
-      setEmployees(Array.isArray(employeeData) ? employeeData : []);
-      setTotalEmployees(Number(employeeCount) || 0);
-      setTotalPages(Number(calculatedPages) || 1);
-    } catch (err) {
-      console.error("Failed to load employees:", err);
+      setEmployees(
+        Array.isArray(employeeList)
+          ? employeeList
+          : []
+      );
 
-      const backendMessage =
+      setTotalEmployees(
+        Number(employeeTotal) || 0
+      );
+
+      setTotalPages(
+        Number(pages) || 1
+      );
+    } catch (err) {
+      console.error(
+        "Failed to load employees:",
+        err
+      );
+
+      const detail =
         err?.response?.data?.detail;
 
       setError(
-        Array.isArray(backendMessage)
-          ? backendMessage.map((item) => item.msg).join(", ")
-          : backendMessage ||
+        Array.isArray(detail)
+          ? detail
+              .map((item) => item.msg)
+              .join(", ")
+          : detail ||
               "Unable to load employee data. Please make sure the backend server is running."
       );
 
       setEmployees([]);
+      setTotalEmployees(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  // Initial load + pagination/filter changes
+  // =========================================================
+  // INITIAL LOAD / FILTER / PAGINATION
+  // =========================================================
+
   useEffect(() => {
     loadEmployees();
-  }, [page, countryFilter, departmentFilter]);
+  }, [
+    page,
+    countryFilter,
+    departmentFilter,
+  ]);
 
   // =========================================================
   // SEARCH
@@ -136,16 +164,16 @@ function App() {
   async function handleSearch(event) {
     event.preventDefault();
 
-    setPage(1);
-
-    // If already on page 1, explicitly reload
-    if (page === 1) {
-      await loadEmployees();
+    if (page !== 1) {
+      setPage(1);
+      return;
     }
+
+    await loadEmployees();
   }
 
   // =========================================================
-  // FORM
+  // FORM CHANGE
   // =========================================================
 
   function handleFormChange(event) {
@@ -158,7 +186,7 @@ function App() {
   }
 
   // =========================================================
-  // CREATE MODAL
+  // OPEN CREATE MODAL
   // =========================================================
 
   function openCreateModal() {
@@ -171,33 +199,42 @@ function App() {
       ).padStart(5, "0")}`,
     });
 
-    setModalOpen(true);
     setError("");
     setSuccess("");
+    setModalOpen(true);
   }
 
   // =========================================================
-  // EDIT MODAL
+  // OPEN EDIT MODAL
   // =========================================================
 
   function openEditModal(employee) {
     setEditingEmployee(employee);
 
     setForm({
-      employee_code: employee.employee_code || "",
-      first_name: employee.first_name || "",
-      last_name: employee.last_name || "",
-      email: employee.email || "",
-      country: employee.country || "",
-      department: employee.department || "",
-      job_title: employee.job_title || "",
-      currency: employee.currency || "USD",
-      annual_salary: employee.annual_salary ?? "",
+      employee_code:
+        employee.employee_code || "",
+      first_name:
+        employee.first_name || "",
+      last_name:
+        employee.last_name || "",
+      email:
+        employee.email || "",
+      country:
+        employee.country || "",
+      department:
+        employee.department || "",
+      job_title:
+        employee.job_title || "",
+      currency:
+        employee.currency || "USD",
+      annual_salary:
+        employee.annual_salary ?? "",
     });
 
-    setModalOpen(true);
     setError("");
     setSuccess("");
+    setModalOpen(true);
   }
 
   // =========================================================
@@ -213,7 +250,7 @@ function App() {
   }
 
   // =========================================================
-  // CREATE / UPDATE EMPLOYEE
+  // CREATE / UPDATE
   // =========================================================
 
   async function handleSubmit(event) {
@@ -225,8 +262,32 @@ function App() {
       setSuccess("");
 
       const payload = {
-        ...form,
-        annual_salary: Number(form.annual_salary),
+        employee_code:
+          form.employee_code.trim(),
+
+        first_name:
+          form.first_name.trim(),
+
+        last_name:
+          form.last_name.trim(),
+
+        email:
+          form.email.trim(),
+
+        country:
+          form.country.trim(),
+
+        department:
+          form.department.trim(),
+
+        job_title:
+          form.job_title.trim(),
+
+        currency:
+          form.currency,
+
+        annual_salary:
+          Number(form.annual_salary),
       };
 
       if (editingEmployee) {
@@ -235,14 +296,18 @@ function App() {
           payload
         );
 
-        setSuccess("Employee updated successfully.");
+        setSuccess(
+          "Employee updated successfully."
+        );
       } else {
         await axios.post(
           `${API_URL}/api/employees`,
           payload
         );
 
-        setSuccess("Employee created successfully.");
+        setSuccess(
+          "Employee created successfully."
+        );
       }
 
       setModalOpen(false);
@@ -251,16 +316,21 @@ function App() {
 
       await loadEmployees();
     } catch (err) {
-      console.error("Save employee error:", err);
+      console.error(
+        "Save employee error:",
+        err
+      );
 
-      const message =
-        err?.response?.data?.detail ||
-        "Unable to save employee. Please check the entered data.";
+      const detail =
+        err?.response?.data?.detail;
 
       setError(
-        Array.isArray(message)
-          ? message.map((item) => item.msg).join(", ")
-          : message
+        Array.isArray(detail)
+          ? detail
+              .map((item) => item.msg)
+              .join(", ")
+          : detail ||
+              "Unable to save employee. Please check the entered data."
       );
     } finally {
       setSaving(false);
@@ -268,7 +338,7 @@ function App() {
   }
 
   // =========================================================
-  // DELETE EMPLOYEE
+  // DELETE
   // =========================================================
 
   async function handleDelete(employee) {
@@ -276,7 +346,9 @@ function App() {
       `Are you sure you want to delete ${employee.first_name} ${employee.last_name}?`
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       setError("");
@@ -286,15 +358,25 @@ function App() {
         `${API_URL}/api/employees/${employee.id}`
       );
 
-      setSuccess("Employee deleted successfully.");
+      setSuccess(
+        "Employee deleted successfully."
+      );
 
-      if (employees.length === 1 && page > 1) {
-        setPage((previous) => previous - 1);
+      if (
+        employees.length === 1 &&
+        page > 1
+      ) {
+        setPage(
+          (previous) => previous - 1
+        );
       } else {
         await loadEmployees();
       }
     } catch (err) {
-      console.error("Delete employee error:", err);
+      console.error(
+        "Delete employee error:",
+        err
+      );
 
       setError(
         err?.response?.data?.detail ||
@@ -307,72 +389,11 @@ function App() {
   // CLEAR FILTERS
   // =========================================================
 
-  async function clearFilters() {
+  function clearFilters() {
     setSearch("");
     setCountryFilter("");
     setDepartmentFilter("");
     setPage(1);
-
-    // Direct API call because React state updates are async
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await axios.get(
-        `${API_URL}/api/employees`,
-        {
-          params: {
-            page: 1,
-            page_size: pageSize,
-          },
-        }
-      );
-
-      const responseData = response.data || {};
-
-      const employeeData =
-        responseData.data ||
-        responseData.items ||
-        [];
-
-      const employeeCount =
-        responseData.count ??
-        responseData.total ??
-        0;
-
-      const calculatedPages =
-        responseData.total_pages ??
-        Math.max(
-          1,
-          Math.ceil(employeeCount / pageSize)
-        );
-
-      setEmployees(
-        Array.isArray(employeeData)
-          ? employeeData
-          : []
-      );
-
-      setTotalEmployees(
-        Number(employeeCount) || 0
-      );
-
-      setTotalPages(
-        Number(calculatedPages) || 1
-      );
-    } catch (err) {
-      console.error(
-        "Failed to clear filters:",
-        err
-      );
-
-      setError(
-        err?.response?.data?.detail ||
-          "Unable to reload employee data."
-      );
-    } finally {
-      setLoading(false);
-    }
   }
 
   // =========================================================
@@ -383,7 +404,10 @@ function App() {
     return [
       ...new Set(
         employees
-          .map((employee) => employee.country)
+          .map(
+            (employee) =>
+              employee.country
+          )
           .filter(Boolean)
       ),
     ].sort();
@@ -397,7 +421,10 @@ function App() {
     return [
       ...new Set(
         employees
-          .map((employee) => employee.department)
+          .map(
+            (employee) =>
+              employee.department
+          )
           .filter(Boolean)
       ),
     ].sort();
@@ -408,40 +435,51 @@ function App() {
   // =========================================================
 
   const dashboardStats = useMemo(() => {
-    const salaries = employees.map((employee) =>
-      Number(employee.annual_salary || 0)
+    const salaries = employees.map(
+      (employee) =>
+        Number(
+          employee.annual_salary || 0
+        )
     );
 
-    const totalSalary = salaries.reduce(
-      (sum, salary) => sum + salary,
-      0
-    );
+    const totalSalary =
+      salaries.reduce(
+        (sum, salary) =>
+          sum + salary,
+        0
+      );
 
     const averageSalary =
-      salaries.length > 0
-        ? totalSalary / salaries.length
+      salaries.length
+        ? totalSalary /
+          salaries.length
         : 0;
 
     const highestSalary =
-      salaries.length > 0
+      salaries.length
         ? Math.max(...salaries)
         : 0;
 
-    const currencyCounts = employees.reduce(
-      (result, employee) => {
-        const currency =
-          employee.currency || "Unknown";
+    const currencyCounts =
+      employees.reduce(
+        (result, employee) => {
+          const currency =
+            employee.currency ||
+            "Unknown";
 
-        result[currency] =
-          (result[currency] || 0) + 1;
+          result[currency] =
+            (result[currency] || 0) +
+            1;
 
-        return result;
-      },
-      {}
-    );
+          return result;
+        },
+        {}
+      );
 
     const topCurrency =
-      Object.entries(currencyCounts).sort(
+      Object.entries(
+        currencyCounts
+      ).sort(
         (a, b) => b[1] - a[1]
       )[0]?.[0] || "—";
 
@@ -460,17 +498,26 @@ function App() {
     <div className="app-shell">
 
       {/* SIDEBAR */}
+
       <aside className="sidebar">
+
         <div className="brand">
-          <div className="brand-logo">A</div>
+
+          <div className="brand-logo">
+            A
+          </div>
 
           <div>
             <h1>ACME</h1>
-            <span>Salary Management</span>
+            <span>
+              Salary Management
+            </span>
           </div>
+
         </div>
 
         <nav className="sidebar-nav">
+
           <div className="nav-item active">
             <span>▦</span>
             Dashboard
@@ -490,68 +537,104 @@ function App() {
             <span>⚙</span>
             Settings
           </div>
+
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-avatar">HR</div>
+
+          <div className="user-avatar">
+            HR
+          </div>
 
           <div>
-            <strong>HR Manager</strong>
-            <small>ACME Organization</small>
+            <strong>
+              HR Manager
+            </strong>
+
+            <small>
+              ACME Organization
+            </small>
           </div>
+
         </div>
+
       </aside>
 
       {/* MAIN */}
+
       <main className="main-content">
 
         {/* HEADER */}
+
         <header className="topbar">
+
           <div>
+
             <p className="eyebrow">
               PEOPLE OPERATIONS
             </p>
 
-            <h2>Salary Dashboard</h2>
+            <h2>
+              Salary Dashboard
+            </h2>
 
             <p className="subtitle">
-              Manage employee compensation and
-              understand how ACME pays its people.
+              Manage employee compensation
+              and understand how ACME pays
+              its people.
             </p>
+
           </div>
 
           <button
             className="primary-button"
-            onClick={openCreateModal}
+            onClick={
+              openCreateModal
+            }
           >
             <span>＋</span>
             Add Employee
           </button>
+
         </header>
 
         {/* ALERTS */}
+
         {error && (
           <div className="alert error-alert">
+
             <span>⚠</span>
+
             {error}
+
           </div>
         )}
 
         {success && (
           <div className="alert success-alert">
+
             <span>✓</span>
+
             {success}
+
           </div>
         )}
 
-        {/* KPI CARDS */}
+        {/* STATS */}
+
         <section className="stats-grid">
 
           <div className="stat-card">
-            <div className="stat-icon blue">♙</div>
+
+            <div className="stat-icon blue">
+              ♙
+            </div>
 
             <div>
-              <span>Total Employees</span>
+
+              <span>
+                Total Employees
+              </span>
 
               <strong>
                 {totalEmployees.toLocaleString()}
@@ -560,16 +643,25 @@ function App() {
               <small>
                 Across all locations
               </small>
+
             </div>
+
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon purple">⌁</div>
+
+            <div className="stat-icon purple">
+              ⌁
+            </div>
 
             <div>
-              <span>Average Salary</span>
+
+              <span>
+                Average Salary
+              </span>
 
               <strong>
+
                 {dashboardStats.averageSalary
                   ? dashboardStats.averageSalary.toLocaleString(
                       "en-US",
@@ -578,21 +670,31 @@ function App() {
                       }
                     )
                   : "—"}
+
               </strong>
 
               <small>
                 Current page average
               </small>
+
             </div>
+
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon green">↗</div>
+
+            <div className="stat-icon green">
+              ↗
+            </div>
 
             <div>
-              <span>Highest Salary</span>
+
+              <span>
+                Highest Salary
+              </span>
 
               <strong>
+
                 {dashboardStats.highestSalary
                   ? dashboardStats.highestSalary.toLocaleString(
                       "en-US",
@@ -601,19 +703,28 @@ function App() {
                       }
                     )
                   : "—"}
+
               </strong>
 
               <small>
                 Current page maximum
               </small>
+
             </div>
+
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon orange">◈</div>
+
+            <div className="stat-icon orange">
+              ◈
+            </div>
 
             <div>
-              <span>Popular Currency</span>
+
+              <span>
+                Popular Currency
+              </span>
 
               <strong>
                 {dashboardStats.topCurrency}
@@ -622,79 +733,113 @@ function App() {
               <small>
                 Based on current page
               </small>
+
             </div>
+
           </div>
 
         </section>
 
-        {/* EMPLOYEE SECTION */}
+        {/* EMPLOYEE DIRECTORY */}
+
         <section className="content-card">
 
           <div className="section-header">
+
             <div>
-              <h3>Employee Directory</h3>
+
+              <h3>
+                Employee Directory
+              </h3>
 
               <p>
                 Search, filter and manage
-                compensation records for your
-                organization.
+                compensation records for
+                your organization.
               </p>
+
             </div>
 
             <div className="record-count">
-              {totalEmployees.toLocaleString()} records
+
+              {totalEmployees.toLocaleString()}
+              {" "}
+              records
+
             </div>
+
           </div>
 
-          {/* FILTER BAR */}
+          {/* FILTERS */}
+
           <form
             className="filter-bar"
-            onSubmit={handleSearch}
+            onSubmit={
+              handleSearch
+            }
           >
+
             <div className="search-wrapper">
+
               <span>⌕</span>
 
               <input
                 value={search}
                 onChange={(event) =>
-                  setSearch(event.target.value)
+                  setSearch(
+                    event.target.value
+                  )
                 }
                 placeholder="Search employee, email or employee code..."
               />
+
             </div>
 
             <select
               value={countryFilter}
               onChange={(event) => {
+
                 setCountryFilter(
                   event.target.value
                 );
+
                 setPage(1);
+
               }}
             >
+
               <option value="">
                 All Countries
               </option>
 
-              {countries.map((country) => (
-                <option
-                  key={country}
-                  value={country}
-                >
-                  {country}
-                </option>
-              ))}
+              {countries.map(
+                (country) => (
+                  <option
+                    key={country}
+                    value={country}
+                  >
+                    {country}
+                  </option>
+                )
+              )}
+
             </select>
 
             <select
-              value={departmentFilter}
+              value={
+                departmentFilter
+              }
               onChange={(event) => {
+
                 setDepartmentFilter(
                   event.target.value
                 );
+
                 setPage(1);
+
               }}
             >
+
               <option value="">
                 All Departments
               </option>
@@ -709,6 +854,7 @@ function App() {
                   </option>
                 )
               )}
+
             </select>
 
             <button
@@ -721,24 +867,33 @@ function App() {
             <button
               type="button"
               className="clear-button"
-              onClick={clearFilters}
+              onClick={
+                clearFilters
+              }
             >
               Clear
             </button>
+
           </form>
 
           {/* TABLE */}
+
           <div className="table-wrapper">
 
             {loading ? (
+
               <div className="loading-state">
+
                 <div className="spinner"></div>
 
                 <p>
                   Loading employee data...
                 </p>
+
               </div>
+
             ) : employees.length === 0 ? (
+
               <div className="empty-state">
 
                 <div className="empty-icon">
@@ -750,165 +905,258 @@ function App() {
                 </h3>
 
                 <p>
-                  Try changing your search or
-                  filters, or create a new
-                  employee.
+                  Try changing your search
+                  or filters, or create a
+                  new employee.
                 </p>
 
                 <button
                   className="primary-button"
-                  onClick={openCreateModal}
+                  onClick={
+                    openCreateModal
+                  }
                 >
                   Add Employee
                 </button>
+
               </div>
+
             ) : (
+
               <table className="employee-table">
 
                 <thead>
+
                   <tr>
-                    <th>EMPLOYEE</th>
-                    <th>COUNTRY</th>
-                    <th>DEPARTMENT</th>
-                    <th>JOB TITLE</th>
-                    <th>ANNUAL SALARY</th>
-                    <th>ACTIONS</th>
+
+                    <th>
+                      EMPLOYEE
+                    </th>
+
+                    <th>
+                      COUNTRY
+                    </th>
+
+                    <th>
+                      DEPARTMENT
+                    </th>
+
+                    <th>
+                      JOB TITLE
+                    </th>
+
+                    <th>
+                      ANNUAL SALARY
+                    </th>
+
+                    <th>
+                      ACTIONS
+                    </th>
+
                   </tr>
+
                 </thead>
 
                 <tbody>
 
-                  {employees.map((employee) => (
-                    <tr key={employee.id}>
+                  {employees.map(
+                    (employee) => (
 
-                      <td>
-                        <div className="employee-cell">
+                      <tr
+                        key={
+                          employee.id
+                        }
+                      >
 
-                          <div className="employee-avatar">
-                            {employee.first_name?.[0]}
-                            {employee.last_name?.[0]}
+                        <td>
+
+                          <div className="employee-cell">
+
+                            <div className="employee-avatar">
+
+                              {employee.first_name?.[0]}
+
+                              {employee.last_name?.[0]}
+
+                            </div>
+
+                            <div>
+
+                              <strong>
+                                {
+                                  employee.first_name
+                                }{" "}
+                                {
+                                  employee.last_name
+                                }
+                              </strong>
+
+                              <span>
+                                {
+                                  employee.email
+                                }
+                              </span>
+
+                              <small>
+                                {
+                                  employee.employee_code
+                                }
+                              </small>
+
+                            </div>
+
                           </div>
 
-                          <div>
+                        </td>
+
+                        <td>
+
+                          <span className="country-badge">
+                            {
+                              employee.country
+                            }
+                          </span>
+
+                        </td>
+
+                        <td>
+
+                          <span className="department-badge">
+                            {
+                              employee.department
+                            }
+                          </span>
+
+                        </td>
+
+                        <td>
+
+                          <div className="job-title">
+                            {
+                              employee.job_title
+                            }
+                          </div>
+
+                        </td>
+
+                        <td>
+
+                          <div className="salary-cell">
+
                             <strong>
-                              {employee.first_name}{" "}
-                              {employee.last_name}
+
+                              {formatSalary(
+                                employee.annual_salary,
+                                employee.currency
+                              )}
+
                             </strong>
 
                             <span>
-                              {employee.email}
+                              {
+                                employee.currency
+                              }
                             </span>
 
-                            <small>
-                              {employee.employee_code}
-                            </small>
                           </div>
 
-                        </div>
-                      </td>
+                        </td>
 
-                      <td>
-                        <span className="country-badge">
-                          {employee.country}
-                        </span>
-                      </td>
+                        <td>
 
-                      <td>
-                        <span className="department-badge">
-                          {employee.department}
-                        </span>
-                      </td>
+                          <div className="actions">
 
-                      <td>
-                        <div className="job-title">
-                          {employee.job_title}
-                        </div>
-                      </td>
+                            <button
+                              className="icon-button edit"
+                              title="Edit employee"
+                              onClick={() =>
+                                openEditModal(
+                                  employee
+                                )
+                              }
+                            >
+                              ✎
+                            </button>
 
-                      <td>
-                        <div className="salary-cell">
+                            <button
+                              className="icon-button delete"
+                              title="Delete employee"
+                              onClick={() =>
+                                handleDelete(
+                                  employee
+                                )
+                              }
+                            >
+                              ×
+                            </button>
 
-                          <strong>
-                            {formatSalary(
-                              employee.annual_salary,
-                              employee.currency
-                            )}
-                          </strong>
+                          </div>
 
-                          <span>
-                            {employee.currency}
-                          </span>
+                        </td>
 
-                        </div>
-                      </td>
+                      </tr>
 
-                      <td>
-                        <div className="actions">
-
-                          <button
-                            className="icon-button edit"
-                            title="Edit employee"
-                            onClick={() =>
-                              openEditModal(
-                                employee
-                              )
-                            }
-                          >
-                            ✎
-                          </button>
-
-                          <button
-                            className="icon-button delete"
-                            title="Delete employee"
-                            onClick={() =>
-                              handleDelete(
-                                employee
-                              )
-                            }
-                          >
-                            ×
-                          </button>
-
-                        </div>
-                      </td>
-
-                    </tr>
-                  ))}
+                    )
+                  )}
 
                 </tbody>
+
               </table>
+
             )}
 
           </div>
 
           {/* PAGINATION */}
+
           {!loading &&
             employees.length > 0 && (
+
               <div className="pagination">
 
                 <span>
+
                   Showing{" "}
+
                   <strong>
-                    {(page - 1) * pageSize + 1}-
+
+                    {(page - 1) *
+                      pageSize +
+                      1}
+
+                    -
+
                     {Math.min(
-                      page * pageSize,
+                      page *
+                        pageSize,
                       totalEmployees
                     )}
-                  </strong>{" "}
-                  of{" "}
-                  <strong>
-                    {totalEmployees.toLocaleString()}
+
                   </strong>
+
+                  {" "}of{" "}
+
+                  <strong>
+                    {
+                      totalEmployees.toLocaleString()
+                    }
+                  </strong>
+
                 </span>
 
                 <div className="pagination-buttons">
 
                   <button
-                    disabled={page <= 1}
+                    disabled={
+                      page <= 1
+                    }
                     onClick={() =>
                       setPage(
-                        (previous) =>
-                          previous - 1
+                        (
+                          previous
+                        ) =>
+                          previous -
+                          1
                       )
                     }
                   >
@@ -916,22 +1164,33 @@ function App() {
                   </button>
 
                   <div className="page-number">
+
                     Page{" "}
-                    <strong>{page}</strong>{" "}
-                    of{" "}
+
+                    <strong>
+                      {page}
+                    </strong>
+
+                    {" "}of{" "}
+
                     <strong>
                       {totalPages}
                     </strong>
+
                   </div>
 
                   <button
                     disabled={
-                      page >= totalPages
+                      page >=
+                      totalPages
                     }
                     onClick={() =>
                       setPage(
-                        (previous) =>
-                          previous + 1
+                        (
+                          previous
+                        ) =>
+                          previous +
+                          1
                       )
                     }
                   >
@@ -939,13 +1198,17 @@ function App() {
                   </button>
 
                 </div>
+
               </div>
+
             )}
 
         </section>
 
         {/* FOOTER */}
+
         <footer className="app-footer">
+
           <span>
             ACME Salary Management
           </span>
@@ -961,15 +1224,20 @@ function App() {
           <span>
             HR Operations
           </span>
+
         </footer>
 
       </main>
 
       {/* MODAL */}
+
       {modalOpen && (
+
         <div
           className="modal-backdrop"
-          onMouseDown={closeModal}
+          onMouseDown={
+            closeModal
+          }
         >
 
           <div
@@ -982,27 +1250,36 @@ function App() {
             <div className="modal-header">
 
               <div>
+
                 <p className="eyebrow">
+
                   {editingEmployee
                     ? "EMPLOYEE RECORD"
                     : "NEW RECORD"}
+
                 </p>
 
                 <h3>
+
                   {editingEmployee
                     ? "Edit Employee"
                     : "Add Employee"}
+
                 </h3>
 
                 <p>
-                  Enter accurate employee and
-                  compensation information.
+                  Enter accurate employee
+                  and compensation
+                  information.
                 </p>
+
               </div>
 
               <button
                 className="modal-close"
-                onClick={closeModal}
+                onClick={
+                  closeModal
+                }
                 disabled={saving}
               >
                 ×
@@ -1010,11 +1287,16 @@ function App() {
 
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form
+              onSubmit={
+                handleSubmit
+              }
+            >
 
               <div className="form-grid">
 
                 <div className="form-group">
+
                   <label>
                     Employee Code
                   </label>
@@ -1034,24 +1316,32 @@ function App() {
                     }
                     required
                   />
+
                 </div>
 
                 <div className="form-group">
-                  <label>Email</label>
+
+                  <label>
+                    Email
+                  </label>
 
                   <input
                     type="email"
                     name="email"
-                    value={form.email}
+                    value={
+                      form.email
+                    }
                     onChange={
                       handleFormChange
                     }
                     placeholder="john.doe@acme.com"
                     required
                   />
+
                 </div>
 
                 <div className="form-group">
+
                   <label>
                     First Name
                   </label>
@@ -1067,9 +1357,11 @@ function App() {
                     placeholder="John"
                     required
                   />
+
                 </div>
 
                 <div className="form-group">
+
                   <label>
                     Last Name
                   </label>
@@ -1085,23 +1377,31 @@ function App() {
                     placeholder="Doe"
                     required
                   />
+
                 </div>
 
                 <div className="form-group">
-                  <label>Country</label>
+
+                  <label>
+                    Country
+                  </label>
 
                   <input
                     name="country"
-                    value={form.country}
+                    value={
+                      form.country
+                    }
                     onChange={
                       handleFormChange
                     }
                     placeholder="India"
                     required
                   />
+
                 </div>
 
                 <div className="form-group">
+
                   <label>
                     Department
                   </label>
@@ -1117,9 +1417,11 @@ function App() {
                     placeholder="Engineering"
                     required
                   />
+
                 </div>
 
                 <div className="form-group">
+
                   <label>
                     Job Title
                   </label>
@@ -1135,10 +1437,14 @@ function App() {
                     placeholder="Software Engineer"
                     required
                   />
+
                 </div>
 
                 <div className="form-group">
-                  <label>Currency</label>
+
+                  <label>
+                    Currency
+                  </label>
 
                   <select
                     name="currency"
@@ -1150,6 +1456,7 @@ function App() {
                     }
                     required
                   >
+
                     <option value="USD">
                       USD — US Dollar
                     </option>
@@ -1177,10 +1484,13 @@ function App() {
                     <option value="AUD">
                       AUD — Australian Dollar
                     </option>
+
                   </select>
+
                 </div>
 
                 <div className="form-group full">
+
                   <label>
                     Annual Salary
                   </label>
@@ -1199,6 +1509,7 @@ function App() {
                     step="0.01"
                     required
                   />
+
                 </div>
 
               </div>
@@ -1208,7 +1519,9 @@ function App() {
                 <button
                   type="button"
                   className="cancel-button"
-                  onClick={closeModal}
+                  onClick={
+                    closeModal
+                  }
                   disabled={saving}
                 >
                   Cancel
@@ -1219,11 +1532,13 @@ function App() {
                   className="save-button"
                   disabled={saving}
                 >
+
                   {saving
                     ? "Saving..."
                     : editingEmployee
                     ? "Save Changes"
                     : "Create Employee"}
+
                 </button>
 
               </div>
@@ -1233,6 +1548,7 @@ function App() {
           </div>
 
         </div>
+
       )}
 
     </div>
