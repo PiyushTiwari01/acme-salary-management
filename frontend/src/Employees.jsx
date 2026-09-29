@@ -17,12 +17,12 @@ const emptyForm = {
 
 function Employees() {
   const [employees, setEmployees] = useState([]);
-  const [Country, setCountry] = useState([]);
-  const [departments, setDepartments] = useState([]);
+const [countries, setCountries] = useState([]);
+const [departments, setDepartments] = useState([]);
 
-  const [search, setSearch] = useState("");
-  const [country, setCountry] = useState("");
-  const [department, setDepartment] = useState("");
+const [search, setSearch] = useState("");
+const [country, setCountry] = useState("");
+const [department, setDepartment] = useState("");
 
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
